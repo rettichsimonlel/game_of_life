@@ -1,0 +1,63 @@
+<h1>Nice things halt!</h1>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var canvas = document.getElementById('gridCanvas');
+    var context = canvas.getContext('2d');
+    var gridSize = 40;
+    var canvasWidth = canvas.width;
+    var canvasHeight = canvas.height;
+    var cellSize = canvasWidth / gridSize;
+
+    // Draw the grid
+    for (var x = 0; x <= canvasWidth; x += cellSize) {
+        for (var y = 0; y <= canvasHeight; y += cellSize) {
+            context.beginPath(); // Begin a new path for each rectangle
+            context.rect(x, y, cellSize, cellSize);
+            context.strokeStyle = '#ddd';
+            context.stroke();
+        }
+    }
+
+    // Add event listener to fill cells on click
+    canvas.addEventListener('click', function (event) {
+        var clickedX = Math.floor(event.offsetX / cellSize) * cellSize;
+        var clickedY = Math.floor(event.offsetY / cellSize) * cellSize;
+        context.fillStyle = '#000';
+        context.fillRect(clickedX, clickedY, cellSize, cellSize);
+    });
+});
+
+function submitCanvasData() {
+    console.log('in submit canvas data');
+    var canvas = document.getElementById('gridCanvas');
+    var context = canvas.getContext('2d');
+    var gridSize = 40;
+    var cellSize = canvas.width / gridSize;
+    var dataArray = [];
+    for (var y = 0; y < gridSize; y++) {
+        for (var x = 0; x < gridSize; x++) {
+            var pixelData = context.getImageData(x * cellSize + 1, y * cellSize + 1, 1, 1).data;
+            // Check if the pixel is black
+            var isBlack = pixelData[0] === 0 && pixelData[1] === 0 && pixelData[2] === 0;
+            dataArray.push(isBlack ? 1 : 0);
+        }
+    }
+    // Convert the array to a string
+    var dataString = dataArray.join('');
+    // Update the hidden input field to store the data
+    var hiddenInput = document.getElementById('canvasData');
+    hiddenInput.value = dataString;
+    console.log(dataString);
+    // Submit the form
+    var form = document.getElementById('runForm');
+    form.submit();
+}
+</script>
+<canvas id='gridCanvas' width='1000' height='520'></canvas>
+<form method='post' action='/shutdown'>
+    <input type='submit' value='shutdown'>
+</form>
+<form style='display: inline' method='post' id='runForm' action='/'>
+    <button type='button' onclick='submitCanvasData()' name='start' value=''>Run</button>
+    <input type='hidden' name='canvasData' id='canvasData'>
+</form>
