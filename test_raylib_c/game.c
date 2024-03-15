@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "raylib.h"
 #include "crud.h"
@@ -7,6 +9,7 @@
 int grid[GRID_WIDTH][GRID_HEIGHT];
 int nextGrid[GRID_WIDTH][GRID_HEIGHT];
 bool isPaused = true;
+bool inWriting = false;
 int currentFPS = 60;
 
 // Function to initialize the grid randomly
@@ -69,6 +72,94 @@ void drawGrid() {
     }
 }
 
+char *draw_input_field() {
+    inWriting = true;
+
+    char *name = (char *)malloc((MAX_INPUT_CHARS + 1) * sizeof(char));
+    name[0] = '\0';
+    int letterCount = 0;
+
+    Rectangle textBox = { SCREEN_WIDTH/2.0f - 100, 180, 225, 50 };
+    bool mouseOnText = false;
+
+    int framesCounter = 0;
+
+    while (inWriting) {
+
+	if (CheckCollisionPointRec(GetMousePosition(), textBox)) mouseOnText = true;
+	else mouseOnText = false;
+
+	if (mouseOnText)
+	{
+	    // Set the window's cursor to the I-Beam
+	    SetMouseCursor(MOUSE_CURSOR_IBEAM);
+
+	    // Get char pressed (unicode character) on the queue
+	    int key = GetCharPressed();
+
+	    // Check if more characters have been pressed on the same frame
+	    while (key > 0)
+	    {
+		// NOTE: Only allow keys in range [32..125]
+		if ((key >= 32) && (key <= 125) && (letterCount < MAX_INPUT_CHARS))
+		{
+		    name[letterCount] = (char)key;
+		    name[letterCount+1] = '\0'; // Add null terminator at the end of the string.
+		    letterCount++;
+		}
+
+		key = GetCharPressed();  // Check next character in the queue
+	    }
+
+	    if (IsKeyPressed(KEY_BACKSPACE))
+	    {
+		letterCount--;
+		if (letterCount < 0) letterCount = 0;
+		name[letterCount] = '\0';
+	    }
+	}
+	else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+
+	if (mouseOnText) framesCounter++;
+	else framesCounter = 0;
+
+	if (IsKeyPressed(KEY_ENTER))
+	{
+	    inWriting = false;
+	    break;
+	}
+
+	BeginDrawing();
+
+	    ClearBackground(RAYWHITE);
+
+	    DrawText("PLACE MOUSE OVER INPUT BOX!", 240, 140, 20, GRAY);
+
+	    DrawRectangleRec(textBox, LIGHTGRAY);
+	    if (mouseOnText) DrawRectangleLines((int)textBox.x, (int)textBox.y, (int)textBox.width, (int)textBox.height, RED);
+	    else DrawRectangleLines((int)textBox.x, (int)textBox.y, (int)textBox.width, (int)textBox.height, DARKGRAY);
+
+	    DrawText(name, (int)textBox.x + 5, (int)textBox.y + 8, 40, MAROON);
+
+	    DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, MAX_INPUT_CHARS), 315, 250, 20, DARKGRAY);
+
+	    if (mouseOnText)
+	    {
+		if (letterCount < MAX_INPUT_CHARS)
+		{
+		    // Draw blinking underscore char
+		    if (((framesCounter/20)%2) == 0) DrawText("_", (int)textBox.x + 8 + MeasureText(name, 40), (int)textBox.y + 12, 40, MAROON);
+		}
+		else DrawText("Press BACKSPACE to delete chars...", 230, 300, 20, GRAY);
+	    }
+
+	EndDrawing();
+    }
+
+    printf("This is the name: %s\n", name);
+    return name;
+}
+
 void whenPausedInput() {
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
 	int mouseX = GetMouseX() / CELL_SIZE;
@@ -84,17 +175,22 @@ void whenPausedInput() {
 
     if (IsKeyPressed(KEY_S)) {
 	// Save the state
-	int error = save_state("./state.db", grid);
+        char *name = draw_input_field();
+	printf("Still the name but different: %s\n", name);
+	int error = save_state("./state.db", name, grid);
 	if (error > 0) {
 	    printf("Error in the opening of the db: %d\n", error);
 	}
+	free(name);
     }
 
     if (IsKeyPressed(KEY_L)) {
 	// Load the state
-	if (load_state("./state.db", grid) == 1) {
+	char *name = draw_input_field();
+	if (load_state("./state.db", name, grid) == 1) {
 	    printf("Error in loading the state.\n");
 	}
+	free(name);
     }
 }
 

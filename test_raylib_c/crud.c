@@ -4,7 +4,7 @@
 #include "crud.h"
 #include "game.h"
 
-int save_state(char *db_name, int grid[GRID_WIDTH][GRID_HEIGHT]) {
+int save_state(char *db_name, char *name, int grid[GRID_WIDTH][GRID_HEIGHT]) {
     sqlite3* DB;
     int error = sqlite3_open(db_name, &DB);
 
@@ -13,7 +13,7 @@ int save_state(char *db_name, int grid[GRID_WIDTH][GRID_HEIGHT]) {
         return 1;
     }
 
-    const char *create_table_sql = "CREATE TABLE IF NOT EXISTS State (ID INTEGER PRIMARY KEY AUTOINCREMENT, GridData TEXT NOT NULL);";
+    const char *create_table_sql = "CREATE TABLE IF NOT EXISTS State (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL UNIQUE, GridData TEXT NOT NULL);";
     
     error = sqlite3_exec(DB, create_table_sql, NULL, 0, NULL);
     
@@ -34,8 +34,8 @@ int save_state(char *db_name, int grid[GRID_WIDTH][GRID_HEIGHT]) {
     gridData[index] = '\0'; // Null-terminate the string
 
     // Construct SQL insert statement
-    char insert_sql[100 + GRID_WIDTH * GRID_HEIGHT];
-    sprintf(insert_sql, "INSERT INTO State (GridData) VALUES ('%s');", gridData);
+    char insert_sql[100 + GRID_WIDTH * GRID_HEIGHT + MAX_INPUT_CHARS];
+    sprintf(insert_sql, "INSERT INTO State (GridData, Name) VALUES ('%s', '%s');", gridData, name);
 
     error = sqlite3_exec(DB, insert_sql, NULL, 0, NULL);
 
@@ -44,12 +44,13 @@ int save_state(char *db_name, int grid[GRID_WIDTH][GRID_HEIGHT]) {
 	sqlite3_close(DB);
 	return 3;
     }
+    
     sqlite3_close(DB);
 
     return 0;
 }
 
-int load_state(char *db_name, int (*grid)[GRID_HEIGHT]) {
+int load_state(char *db_name, char *name, int (*grid)[GRID_HEIGHT]) {
     sqlite3* DB;
     int error = sqlite3_open(db_name, &DB);
 
@@ -58,7 +59,9 @@ int load_state(char *db_name, int (*grid)[GRID_HEIGHT]) {
         return 1;
     }
 
-    const char *query_sql = "SELECT GridData FROM State ORDER BY ID DESC LIMIT 1;";
+    char query_sql[100];
+    sprintf(query_sql, "SELECT GridData FROM State WHERE Name == '%s';", name);
+
     sqlite3_stmt *stmt;
 
     error = sqlite3_prepare_v2(DB, query_sql, -1, &stmt, NULL);
