@@ -1,0 +1,10 @@
+#ifndef GAME_H
+#define GAME_H
+
+#define SCREEN_WIDTH 1200
+#define SCREEN_HEIGHT 800
+#define CELL_SIZE 20
+#define GRID_WIDTH (SCREEN_WIDTH / CELL_SIZE)
+#define GRID_HEIGHT (SCREEN_HEIGHT / CELL_SIZE)
+
+#endif

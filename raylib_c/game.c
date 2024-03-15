@@ -13,6 +13,7 @@ int GAME_ON = 0;
 Rectangle all_rec[MAX_REC];
 
 void handle_input(Camera2D *, int *, int *, int *);
+void game_logic(int *);
 
 int main()
 {
@@ -31,8 +32,25 @@ int main()
 
     SetTargetFPS(60);
 
+    int test = 0;
+
     while (!WindowShouldClose()) {
         handle_input(&camera, &current_x, &current_y, &number);
+
+	if (GAME_ON == 1 && test != 1) {
+	    SetTargetFPS(10);
+	    DrawText("Game on", 600, 600, 50, RED);
+
+	    game_logic(&number);
+	    /* for (int i = 0; i < number; i++) { */
+	    /* 	printf("These are all recs: %d:%d\n", all_rec[i].x, all_rec[i].y); */
+	    /* } */
+
+	    test = 1;
+	} else {
+	    SetTargetFPS(60);
+	    DrawText("Game off", 600, 600, 50, RED);
+	}
 	
         BeginDrawing();
 
@@ -81,6 +99,82 @@ int main()
     return 0;
 }
 
+void game_logic(int *current)
+{
+    Rectangle next_gen[MAX_REC];
+    int next_gen_count = 0;
+
+    for (int i = 0; i < *current; i++) {
+        int live_neighbors = 0;
+
+        for (int j = 0; j < *current; j++) {
+	    printf("Test first x:y = %d:%d\n", all_rec[i].x, all_rec[i].y);
+
+	    if (i != j) {
+		int dx = abs(all_rec[j].x - all_rec[i].x);
+                int dy = abs(all_rec[j].y - all_rec[i].y);
+
+		printf("Test compared to x:y = %d:%d\n", all_rec[j].x, all_rec[j].y);
+		printf("Test dx:dy = %d:%d\n", dx, dy);
+
+                // Check adjacent cells (horizontally, vertically, and diagonally)
+                if ((dx == SQUARE_SIZE && dy == 0) ||      // Horizontal neighbor
+                    (dx == 0 && dy == SQUARE_SIZE) ||      // Vertical neighbor
+                    (dx == SQUARE_SIZE && dy == SQUARE_SIZE) ||   // Diagonal neighbor
+                    (dx == SQUARE_SIZE && dy == -SQUARE_SIZE) ||  // Diagonal neighbor
+                    (dx == -SQUARE_SIZE && dy == SQUARE_SIZE) ||  // Diagonal neighbor
+                    (dx == -SQUARE_SIZE && dy == -SQUARE_SIZE)) { // Diagonal neighbor
+                    live_neighbors++;
+                }
+	    }
+	    
+            /* if (i != j) { */
+            /*     int dx = abs(all_rec[j].x - all_rec[i].x); */
+            /*     int dy = abs(all_rec[j].y - all_rec[i].y); */
+
+            /*     if ((dx == SQUARE_SIZE && dy == 0) || (dx == 0 && dy == SQUARE_SIZE) || */
+            /*         (dx == SQUARE_SIZE && dy == SQUARE_SIZE)) { */
+            /*         live_neighbors++; */
+            /*     } */
+            /* } */
+        }
+	printf("Live neightbors of %d:%d = %d\n", all_rec[i].x, all_rec[i].y, live_neighbors);
+
+        // Check the rules of the game
+        if (live_neighbors == 2 || live_neighbors == 3) {
+            // Live cell survives
+            next_gen[next_gen_count++] = all_rec[i];
+        }
+
+        // Check for reproduction
+        for (int dx = -SQUARE_SIZE; dx <= SQUARE_SIZE; dx += SQUARE_SIZE) {
+            for (int dy = -SQUARE_SIZE; dy <= SQUARE_SIZE; dy += SQUARE_SIZE) {
+                if (dx != 0 || dy != 0) {
+                    Rectangle neighbor = {all_rec[i].x + dx, all_rec[i].y + dy, SQUARE_SIZE, SQUARE_SIZE};
+                    int neighbor_count = 0;
+
+                    for (int k = 0; k < *current; k++) {
+                        if (abs(all_rec[k].x - neighbor.x) <= SQUARE_SIZE &&
+                            abs(all_rec[k].y - neighbor.y) <= SQUARE_SIZE) {
+                            neighbor_count++;
+                        }
+                    }
+
+                    if (neighbor_count == 3) {
+                        next_gen[next_gen_count++] = neighbor;
+                    }
+                }
+            }
+        }
+    }
+
+    // Update all_rec with next generation after all calculations are done
+    *current = next_gen_count;
+    for (int i = 0; i < next_gen_count; i++) {
+        all_rec[i] = next_gen[i];
+    }
+}
+
 void handle_input(Camera2D *camera, int *current_x, int *current_y, int *current)
 {
     if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
@@ -124,94 +218,11 @@ void handle_input(Camera2D *camera, int *current_x, int *current_y, int *current
 	    *current_y = row * SQUARE_SIZE;
     }
 
-    /* if (IsKeyPressed(KEY_SPACE)) { */
-    /* 	if (GAME_ON == 1) { */
-    /* 	    SetTargetFPS(60); */
-    /* 	    GAME_ON = 0; */
-    /* 	    return; */
-    /* 	} */
-    /* 	GAME_ON = 1; */
-    /* 	SetTargetFPS(10); */
-
-    /* 	for (int i = 0; i < current; i++) { */
-    /* 	    for (int j = 0; j < current; j++) { */
-    /* 	    } */
-    /* 	} */
-    /* } */
-
     if (IsKeyPressed(KEY_SPACE)) {
         if (GAME_ON == 1) {
             GAME_ON = 0;
         } else {
             GAME_ON = 1;
         }
-    }
-
-    if (GAME_ON == 1) {
-        DrawText("Game on", 600, 600, 50, RED);
-	
-	static double lastUpdateTime = 0;
-        double currentTime = GetTime();
-        double deltaTime = currentTime - lastUpdateTime;
-        
-        // Update the generation every second
-        if (deltaTime >= 1.0) {
-            lastUpdateTime = currentTime;
-
-	    Rectangle next_gen[MAX_REC];
-	    int next_gen_count = 0;
-
-	    for (int i = 0; i < *current; i++) {
-		int live_neighbors = 0;
-
-		for (int j = 0; j < *current; j++) {
-		    if (i != j) {
-			int dx = abs(all_rec[j].x - all_rec[i].x);
-			int dy = abs(all_rec[j].y - all_rec[i].y);
-
-			if ((dx == SQUARE_SIZE && dy == 0) || (dx == 0 && dy == SQUARE_SIZE) ||
-			    (dx == SQUARE_SIZE && dy == SQUARE_SIZE)) {
-			    live_neighbors++;
-			}
-		    }
-		}
-
-		// Check the rules of the game
-		if (live_neighbors == 2 || live_neighbors == 3) {
-		    // Live cell survives
-		    next_gen[next_gen_count++] = all_rec[i];
-		}
-
-		// Check for reproduction
-		for (int dx = -SQUARE_SIZE; dx <= SQUARE_SIZE; dx += SQUARE_SIZE) {
-		    for (int dy = -SQUARE_SIZE; dy <= SQUARE_SIZE; dy += SQUARE_SIZE) {
-			if (dx != 0 || dy != 0) {
-			    Rectangle neighbor = {all_rec[i].x + dx, all_rec[i].y + dy, SQUARE_SIZE, SQUARE_SIZE};
-			    int neighbor_count = 0;
-
-			    for (int k = 0; k < *current; k++) {
-				if (abs(all_rec[k].x - neighbor.x) <= SQUARE_SIZE &&
-				    abs(all_rec[k].y - neighbor.y) <= SQUARE_SIZE) {
-				    neighbor_count++;
-				}
-			    }
-
-			    if (neighbor_count == 3) {
-				next_gen[next_gen_count++] = neighbor;
-			    }
-			}
-		    }
-		}
-	    }
-
-	    // Update all_rec with next generation
-	    *current = next_gen_count;
-	    for (int i = 0; i < next_gen_count; i++) {
-		all_rec[i] = next_gen[i];
-	    }
-	    sleep(1);
-	}
-    } else {
-        DrawText("Game off", 600, 600, 50, RED);
     }
 }

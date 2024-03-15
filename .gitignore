@@ -1,2 +1,3 @@
+test_raylib_c/state.db
 *.o
-game
+*.db
