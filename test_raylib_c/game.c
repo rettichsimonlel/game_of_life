@@ -186,12 +186,49 @@ void whenPausedInput() {
 
     if (IsKeyPressed(KEY_L)) {
 	// Load the state
-	char *name = draw_input_field();
-	if (load_state("./state.db", name, grid) == 1) {
-	    printf("Error in loading the state.\n");
+	char **names = load_file_names("./state.db");
+	if (names == NULL) {
+	    printf("Error loading file names.\n");
+	    // Handle error
+	} else {
+	    printf("These names:\n");
+	    // Iterate through the array of strings and print each name
+	    for (int i = 0; names[i] != NULL; i++) {
+		printf("%s\n", names[i]);
+	    }
+
+	    // Prompt user to enter the name
+	    char *name = draw_input_field();
+	    if (name == NULL) {
+		printf("Error reading input.\n");
+		// Handle error
+	    } else {
+		if (load_state("./state.db", name, grid) == 1) {
+		    printf("Error in loading the state.\n");
+		    // Handle error
+		}
+		free(name);
+	    }
+
+	    // Free the array of strings
+	    for (int i = 0; names[i] != NULL; i++) {
+		free(names[i]);
+	    }
+	    free(names);
 	}
-	free(name);
     }
+
+    /* if (IsKeyPressed(KEY_L)) { */
+    /* 	// Load the state */
+    /* 	char **names = load_file_names("./state.db"); */
+    /* 	printf("These names:\n"); */
+    /* 	printf("%s\n", names); */
+    /* 	char *name = draw_input_field(); */
+    /* 	if (load_state("./state.db", name, grid) == 1) { */
+    /* 	    printf("Error in loading the state.\n"); */
+    /* 	} */
+    /* 	free(name); */
+    /* } */
 }
 
 void universalInput() {
