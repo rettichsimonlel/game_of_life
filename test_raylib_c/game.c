@@ -72,7 +72,15 @@ void drawGrid() {
     }
 }
 
-char *draw_input_field() {
+void draw_names(char **names) {
+
+    for (int i = 0; names[i] != NULL; i++) {
+	DrawText(names[i], 30, SCREEN_HEIGHT / 2 + (i*30), 20, RED);
+    }
+
+}
+
+char *draw_input_field(char **names) {
     inWriting = true;
 
     char *name = (char *)malloc((MAX_INPUT_CHARS + 1) * sizeof(char));
@@ -133,6 +141,10 @@ char *draw_input_field() {
 
 	    ClearBackground(RAYWHITE);
 
+	    if (names != NULL) {
+		draw_names(names);
+	    }
+
 	    DrawText("PLACE MOUSE OVER INPUT BOX!", 240, 140, 20, GRAY);
 
 	    DrawRectangleRec(textBox, LIGHTGRAY);
@@ -175,7 +187,7 @@ void whenPausedInput() {
 
     if (IsKeyPressed(KEY_S)) {
 	// Save the state
-        char *name = draw_input_field();
+        char *name = draw_input_field(NULL);
 	printf("Still the name but different: %s\n", name);
 	int error = save_state("./state.db", name, grid);
 	if (error > 0) {
@@ -198,7 +210,7 @@ void whenPausedInput() {
 	    }
 
 	    // Prompt user to enter the name
-	    char *name = draw_input_field();
+	    char *name = draw_input_field(names);
 	    if (name == NULL) {
 		printf("Error reading input.\n");
 		// Handle error
