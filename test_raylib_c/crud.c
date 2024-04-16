@@ -1,6 +1,7 @@
 #include <sqlite3.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "crud.h"
 #include "game.h"
 
@@ -93,6 +94,7 @@ char **load_file_names(char *db_name) {
                 return NULL;
             }
             strcpy(names_array[count], (char*)name);
+	    printf("This is the current name: %s\n", names_array[count]);
             ++count;
             // Resize the array of strings
             names_array = realloc(names_array, (count + 1) * sizeof(char*));
@@ -118,41 +120,39 @@ char **load_file_names(char *db_name) {
     return names_array;
 }
 
-/* char **load_file_names(char *db_name) { */
-/*     sqlite3* DB; */
-/*     int error = sqlite3_open(db_name, &DB); */
-/*     if (error) { */
-/*         sqlite3_close(DB); */
-/*         return NULL; */
-/*     } */
+char **delete_stuff(char *db_name, char *name) {
+    sqlite3* DB;
+    int error = sqlite3_open(db_name, &DB);
 
-/*     char query_sql[100]; */
-/*     sprintf(query_sql, "SELECT Name FROM State;"); */
+    printf("This is the name to delete: %s\n", name);
 
-/*     sqlite3_stmt *stmt; */
+    if (error) {
+        sqlite3_close(DB);
+        return NULL;
+    }
 
-/*     error = sqlite3_prepare_v2(DB, query_sql, -1, &stmt, NULL); */
-/*     if (error != SQLITE_OK) { */
-/*         sqlite3_close(DB); */
-/*         return NULL; */
-/*     } */
-/*     // Execute the query */
-/*     error = sqlite3_step(stmt); */
-/*     if (error != SQLITE_ROW) { */
-/*         sqlite3_finalize(stmt); */
-/*         sqlite3_close(DB); */
-/*         return NULL; */
-/*     } */
-/*     // Extract grid data from the result */
-/*     const unsigned char *names = sqlite3_column_text(stmt, 0); */
-/*     if (names == NULL) { */
-/*         sqlite3_finalize(stmt); */
-/*         sqlite3_close(DB); */
-/*         return NULL; */
-/*     } */
-    
-/*     return names; */
-/* } */
+    char query_sql[100];
+    sprintf(query_sql, "DELETE FROM State WHERE Name == '%s';", name);
+
+    sqlite3_stmt *stmt;
+
+    error = sqlite3_prepare_v2(DB, query_sql, -1, &stmt, NULL);
+    if (error != SQLITE_OK) {
+        sqlite3_close(DB);
+        return NULL;
+    }
+
+    // Execute the query
+    error = sqlite3_step(stmt);
+    printf("Test\n");
+    /* if (error != SQLITE_ROW) { */
+    /*     sqlite3_finalize(stmt); */
+    /*     sqlite3_close(DB); */
+    /*     return NULL; */
+    /* } */
+
+    return load_file_names(db_name);
+}
 
 int load_state(char *db_name, char *name, int (*grid)[GRID_HEIGHT]) {
     sqlite3* DB;

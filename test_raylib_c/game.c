@@ -72,12 +72,45 @@ void drawGrid() {
     }
 }
 
-void draw_names(char **names) {
-
+bool draw_names(char **names) {
+    Texture2D button = LoadTexture("images/delete.png");
+    float frameHeight = (float)button.height;
+    Rectangle sourceRec = { 0, 0, (float)button.width, frameHeight };
+    bool btnAction = false;
+    Vector2 mousePoint = GetMousePosition();
+    
     for (int i = 0; names[i] != NULL; i++) {
-	DrawText(names[i], 30, SCREEN_HEIGHT / 2 + (i*30), 20, RED);
+        // Calculate the position for each name and button
+        float textPosX = SCREEN_WIDTH / 2 - MeasureText(names[i], 20) / 2;
+        float textPosY = SCREEN_HEIGHT / 2 + (i * 30);
+        float btnPosX = textPosX + MeasureText(names[i], 20) + 10; // Adjust button position
+        float btnPosY = textPosY - button.height / 2 + 5; // Adjust button position
+        
+        // Draw the name
+	printf("This is a name in draw names: %s\n", names[i]);
+	DrawText(names[i], textPosX, textPosY, 20, RED);
+        
+        // Draw the button
+        Rectangle btnBounds = { btnPosX, btnPosY, (float)button.width, frameHeight };
+        DrawTextureRec(button, sourceRec, (Vector2){ btnBounds.x, btnBounds.y }, WHITE);
+        
+        // Check if the mouse is over the button
+        if (CheckCollisionPointRec(mousePoint, btnBounds)) {
+            // If mouse is over the button, highlight it
+            DrawRectangleLinesEx(btnBounds, 2, GREEN);
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                // If mouse button is pressed over the button, set action flag
+                btnAction = true;
+		printf("This button: %s was pressed\n", names[i]);
+		names = delete_stuff("./state.db", names[i]);
+		/* draw_input_field(names); */
+		printf("Test\n");
+            }
+        }
+	if (btnAction)
+	    return true;
     }
-
+    return false;
 }
 
 char *draw_input_field(char **names) {
@@ -142,7 +175,13 @@ char *draw_input_field(char **names) {
 	    ClearBackground(RAYWHITE);
 
 	    if (names != NULL) {
-		draw_names(names);
+		bool test = draw_names(names);
+		if (test == true) {
+		    printf("True\n");
+		    names = load_file_names("./state.db");
+		    name = draw_input_field(names);
+		}
+		printf("False\n");
 	    }
 
 	    DrawText("PLACE MOUSE OVER INPUT BOX!", 240, 140, 20, GRAY);
@@ -172,6 +211,33 @@ char *draw_input_field(char **names) {
     return name;
 }
 
+void action_load(char **names) {
+    printf("These names:\n");
+    // Iterate through the array of strings and print each name
+    for (int i = 0; names[i] != NULL; i++) {
+	printf("%s\n", names[i]);
+    }
+
+    // Prompt user to enter the name
+    char *name = draw_input_field(names);
+    if (name == NULL) {
+	printf("Error reading input.\n");
+	// Handle error
+    } else {
+	if (load_state("./state.db", name, grid) == 1) {
+	    printf("Error in loading the state.\n");
+	    // Handle error
+	}
+	free(name);
+    }
+
+    // Free the array of strings
+    for (int i = 0; names[i] != NULL; i++) {
+	free(names[i]);
+    }
+    free(names);
+}
+
 void whenPausedInput() {
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
 	int mouseX = GetMouseX() / CELL_SIZE;
@@ -187,7 +253,8 @@ void whenPausedInput() {
 
     if (IsKeyPressed(KEY_S)) {
 	// Save the state
-        char *name = draw_input_field(NULL);
+	char **names = load_file_names("./state.db");
+        char *name = draw_input_field(names);
 	printf("Still the name but different: %s\n", name);
 	int error = save_state("./state.db", name, grid);
 	if (error > 0) {
@@ -203,44 +270,9 @@ void whenPausedInput() {
 	    printf("Error loading file names.\n");
 	    // Handle error
 	} else {
-	    printf("These names:\n");
-	    // Iterate through the array of strings and print each name
-	    for (int i = 0; names[i] != NULL; i++) {
-		printf("%s\n", names[i]);
-	    }
-
-	    // Prompt user to enter the name
-	    char *name = draw_input_field(names);
-	    if (name == NULL) {
-		printf("Error reading input.\n");
-		// Handle error
-	    } else {
-		if (load_state("./state.db", name, grid) == 1) {
-		    printf("Error in loading the state.\n");
-		    // Handle error
-		}
-		free(name);
-	    }
-
-	    // Free the array of strings
-	    for (int i = 0; names[i] != NULL; i++) {
-		free(names[i]);
-	    }
-	    free(names);
+	    action_load(names);
 	}
     }
-
-    /* if (IsKeyPressed(KEY_L)) { */
-    /* 	// Load the state */
-    /* 	char **names = load_file_names("./state.db"); */
-    /* 	printf("These names:\n"); */
-    /* 	printf("%s\n", names); */
-    /* 	char *name = draw_input_field(); */
-    /* 	if (load_state("./state.db", name, grid) == 1) { */
-    /* 	    printf("Error in loading the state.\n"); */
-    /* 	} */
-    /* 	free(name); */
-    /* } */
 }
 
 void universalInput() {
